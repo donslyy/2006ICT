@@ -23,11 +23,11 @@ public class Main extends Application {
     }
 
     private Scene buildMenuScene(Stage stage) {
-        // Title
+        // title
         Label title = new Label("Main Menu");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
 
-        // Buttons
+        // buttons
         Button play = new Button("Play");
         Button config = new Button("Configuration");
         Button scores = new Button("High Scores");
@@ -38,7 +38,6 @@ public class Main extends Application {
         scores.setMaxWidth(Double.MAX_VALUE);
         exit.setMaxWidth(Double.MAX_VALUE);
 
-        // Temporary actions (we'll wire real screens in next steps)
         play.setOnAction(e ->
                 new Alert(Alert.AlertType.INFORMATION, "Play screen coming next.", ButtonType.OK).showAndWait());
 
@@ -59,7 +58,7 @@ public class Main extends Application {
         buttons.setPadding(new Insets(20));
         buttons.setPrefWidth(360);
 
-        // Footer
+        // footer
         Label author = new Label("Author: Devlin Hampson s5334585");
         author.setPadding(new Insets(6));
         author.setStyle("-fx-text-fill: #555;");
