@@ -18,7 +18,7 @@ public class Main extends Application {
     public void start(Stage stage) {
         stage.setTitle("Tetris");
         stage.setResizable(false);
-        stage.setScene(buildMenuScene(stage));
+        stage.setScene(SplashView.create(stage));
         stage.show();
     }
 
@@ -40,8 +40,9 @@ public class Main extends Application {
         scores.setMaxWidth(Double.MAX_VALUE);
         exit.setMaxWidth(Double.MAX_VALUE);
 
-        play.setOnAction(e ->
-                new Alert(Alert.AlertType.INFORMATION, "Play screen coming next.", ButtonType.OK).showAndWait());
+        play.setOnAction(e -> {
+            stage.setScene(new GameView().create(stage));
+        });
 
         config.setOnAction(e -> stage.setScene(ConfigView.create(stage)));
 
