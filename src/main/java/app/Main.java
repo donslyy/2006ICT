@@ -43,8 +43,7 @@ public class Main extends Application {
 
         config.setOnAction(e -> stage.setScene(ConfigView.create(stage)));
 
-        scores.setOnAction(e ->
-                new Alert(Alert.AlertType.INFORMATION, "High Scores screen coming next.", ButtonType.OK).showAndWait());
+        scores.setOnAction(e -> stage.setScene(HighScoresView.create(stage)));
 
         exit.setOnAction(e -> {
             var alert = new Alert(Alert.AlertType.CONFIRMATION, "Exit the program?", ButtonType.YES, ButtonType.NO);
