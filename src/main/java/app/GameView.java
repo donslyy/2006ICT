@@ -47,23 +47,25 @@ public class GameView extends ScreenBase {
 
     private final Deque<Tetromino> bag = new ArrayDeque<>();
     private final Random rng = new Random();
-
-    // rows being cleared (for flash)
     private int[] clearingRows = new int[0];
 
-    public Scene create(Stage stage) {
-        canvas = new Canvas(COLS * CELL, ROWS * CELL);
+    private Stage stage;
 
+    public Scene create(Stage stage) {
+        this.stage = stage;
+
+        canvas = new Canvas(COLS * CELL, ROWS * CELL);
+        canvas.setFocusTraversable(true);        // keys go to canvas/scene
         scoreLbl = new Label("Score: 0");
         scoreLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
         Button back = new Button("Back");
+        back.setFocusTraversable(false);         // SPACE won’t trigger Back
         back.setOnAction(e -> stage.setScene(Main.buildMenuScene(stage)));
 
         VBox content = new VBox(12, scoreLbl, canvas, back);
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(18));
-
         StackPane center = new StackPane(content);
         center.setPadding(new Insets(12));
 
@@ -79,16 +81,17 @@ public class GameView extends ScreenBase {
                 case RIGHT, D -> moved(tryMove(0,  1));
                 case DOWN, S  -> softDropOne();
                 case UP, W    -> moved(tryRotate());
-                case SPACE    -> hardDrop();
+                case SPACE    -> hardDrop();                // always hard drop
                 case P        -> togglePause();
                 default -> {}
             }
             draw();
         });
-        scene.setOnMouseClicked(ev -> scene.getRoot().requestFocus());
+        scene.setOnMouseClicked(ev -> canvas.requestFocus());
 
         newGame();
         draw();
+        canvas.requestFocus();                 // ensure SPACE/keys work immediately
         return scene;
     }
 
@@ -109,9 +112,7 @@ public class GameView extends ScreenBase {
 
     private void moved(boolean didMove) {
         if (didMove && lockTimer != null) {
-            if (canPlace(pr + 1, pc, rotation)) {
-                cancelLockTimer();
-            }
+            if (canPlace(pr + 1, pc, rotation)) cancelLockTimer();
         }
     }
 
@@ -119,9 +120,9 @@ public class GameView extends ScreenBase {
         if (paused || isClearing) return;
         if (canPlace(pr + 1, pc, rotation)) {
             pr++;
-            addScore(1);
+            addScore(1);                         // only when it actually moves
         } else {
-            startLockDelay();                      // start grace period
+            startLockDelay();
         }
     }
 
@@ -130,7 +131,7 @@ public class GameView extends ScreenBase {
         int dist = 0;
         while (canPlace(pr + 1, pc, rotation)) { pr++; dist++; }
         if (dist > 0) addScore(dist * 2);
-        lockNowOrClear();
+        lockNowOrClear();                        // instant place at bottom
     }
 
     private void tick() {
@@ -142,37 +143,33 @@ public class GameView extends ScreenBase {
     }
 
     private void startLockDelay() {
-        if (lockTimer != null) return;            // counting down
+        if (lockTimer != null) return;
         lockTimer = new PauseTransition(Duration.millis(LOCK_DELAY_MS));
-        lockTimer.setOnFinished(ev -> {
-            lockTimer = null;
-            lockNowOrClear();
-        });
+        lockTimer.setOnFinished(ev -> { lockTimer = null; lockNowOrClear(); });
         lockTimer.playFromStart();
     }
 
     private void cancelLockTimer() {
-        if (lockTimer != null) {
-            lockTimer.stop();
-            lockTimer = null;
-        }
+        if (lockTimer != null) { lockTimer.stop(); lockTimer = null; }
     }
 
     private void lockNowOrClear() {
-        lockPiece();
+        boolean aboveTop = lockPieceAndCheckAboveTop();   // ← immediate game over if true
+        if (aboveTop) { gameOver(); return; }
+
         int[] full = scanFullRows();
         if (full.length > 0) {
             startClearFlash(full);
         } else {
-            spawnFromBag();
-            if (!canPlace(pr, pc, rotation)) newGame();
+            if (!spawnFromBag()) { gameOver(); return; }
         }
     }
 
-    private void spawnFromBag() {
+    private boolean spawnFromBag() {
         refillBagIfNeeded();
         piece = bag.removeFirst();
         rotation = 0; pr = 0; pc = 3;
+        return canPlace(pr, pc, rotation);
     }
 
     private void refillBagIfNeeded() {
@@ -206,14 +203,18 @@ public class GameView extends ScreenBase {
         return true;
     }
 
-    private void lockPiece() {
+    /** Lock and return true if any block would be above the top (rr < 0). */
+    private boolean lockPieceAndCheckAboveTop() {
+        boolean aboveTop = false;
         int id = piece.id();
         int[][] s = piece.shape(rotation);
         for (int r = 0; r < 4; r++) for (int c = 0; c < 4; c++) {
             if (s[r][c] == 0) continue;
             int rr = pr + r, cc = pc + c;
+            if (rr < 0) { aboveTop = true; continue; }
             if (rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS) board[rr][cc] = id;
         }
+        return aboveTop;
     }
 
     private int[] scanFullRows() {
@@ -229,22 +230,20 @@ public class GameView extends ScreenBase {
     private void startClearFlash(int[] rows) {
         isClearing = true;
         clearingRows = rows;
-        draw(); // show first frame of flash
+        draw();
         PauseTransition flash = new PauseTransition(Duration.millis(CLEAR_FLASH_MS));
         flash.setOnFinished(ev -> {
             applyRowClear(rows);
             isClearing = false;
             clearingRows = new int[0];
-            spawnFromBag();
-            if (!canPlace(pr, pc, rotation)) newGame();
+            if (!spawnFromBag()) { gameOver(); return; }
             draw();
         });
         flash.playFromStart();
-        addScore(rows.length * 100); // simple scoring: +100 per row
+        addScore(rows.length * 100);
     }
 
     private void applyRowClear(int[] rows) {
-        // remove rows by compressing downward
         Set<Integer> toClear = new HashSet<>();
         for (int r : rows) toClear.add(r);
         int write = ROWS - 1;
@@ -257,10 +256,22 @@ public class GameView extends ScreenBase {
         for (int r = write; r >= 0; r--) Arrays.fill(board[r], 0);
     }
 
+    private void gameOver() {
+        if (gravity != null) gravity.stop();
+        cancelLockTimer();
+        var dialog = new javafx.scene.control.TextInputDialog("Devlin Hampson");
+        dialog.setTitle("Game Over");
+        dialog.setHeaderText("Game Over — Score: " + score);
+        dialog.setContentText("Enter your name:");
+        String name = dialog.showAndWait().orElse("").trim();
+        HighScores.add(name, score);
+        stage.setScene(HighScoresView.create(stage));
+    }
+
     private void togglePause() {
         paused = !paused;
-        if (paused) { gravity.pause(); cancelLockTimer(); }
-        else gravity.play();
+        if (paused) { if (gravity != null) gravity.pause(); cancelLockTimer(); }
+        else if (gravity != null) gravity.play();
         draw();
     }
 
@@ -269,17 +280,12 @@ public class GameView extends ScreenBase {
         g.setFill(Color.web("#111418"));
         g.fillRect(0, 0, COLS * CELL, ROWS * CELL);
 
-        // board
         for (int r = 0; r < ROWS; r++) for (int c = 0; c < COLS; c++) {
             Color color = colors[board[r][c]];
-            if (isRowClearing(r)) {
-                // flash highlight
-                color = color == Color.TRANSPARENT ? Color.WHITE : Color.WHITE;
-            }
+            if (isRowClearing(r)) color = Color.WHITE;
             drawCell(g, c, r, color);
         }
 
-        // falling piece (not while clearing)
         if (!isClearing) {
             int[][] s = piece.shape(rotation);
             for (int r = 0; r < 4; r++) for (int c = 0; c < 4; c++) {
@@ -289,7 +295,6 @@ public class GameView extends ScreenBase {
             }
         }
 
-        // pause overlay
         if (paused) {
             g.setFill(Color.color(0, 0, 0, 0.55));
             g.fillRect(0, 0, COLS * CELL, ROWS * CELL);
