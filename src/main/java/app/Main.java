@@ -22,7 +22,9 @@ public class Main extends Application {
         stage.show();
     }
 
+
     public static Scene buildMenuScene(Stage stage) {
+      
         // title
         Label title = new Label("Main Menu");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
