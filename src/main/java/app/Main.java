@@ -22,7 +22,7 @@ public class Main extends Application {
         stage.show();
     }
 
-    private Scene buildMenuScene(Stage stage) {
+    public static Scene buildMenuScene(Stage stage) {
         // title
         Label title = new Label("Main Menu");
         title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
@@ -41,8 +41,7 @@ public class Main extends Application {
         play.setOnAction(e ->
                 new Alert(Alert.AlertType.INFORMATION, "Play screen coming next.", ButtonType.OK).showAndWait());
 
-        config.setOnAction(e ->
-                new Alert(Alert.AlertType.INFORMATION, "Configuration screen coming next.", ButtonType.OK).showAndWait());
+        config.setOnAction(e -> stage.setScene(ConfigView.create(stage)));
 
         scores.setOnAction(e ->
                 new Alert(Alert.AlertType.INFORMATION, "High Scores screen coming next.", ButtonType.OK).showAndWait());
