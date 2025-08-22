@@ -1,5 +1,88 @@
-# Default ignored files
-/shelf/
-/workspace.xml
-# Editor-based HTTP Client requests
-/httpRequests/
+############################
+# OS junk
+############################
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+############################
+# Java / JVM
+############################
+*.class
+*.log
+*.hprof
+hs_err_pid*
+replay_pid*
+
+############################
+# Maven
+############################
+target/
+pom.xml.versionsBackup
+release.properties
+dependency-reduced-pom.xml
+# Maven wrapper SHOULD be kept, so do NOT ignore:
+#! .mvn/
+#! mvnw
+#! mvnw.cmd
+
+############################
+# IntelliJ IDEA
+############################
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+
+# If you ever keep .idea tracked (not recommended), ignore these inside it:
+# .idea/shelf/
+# .idea/workspace.xml
+# .idea/httpRequests/
+
+############################
+# Eclipse / NetBeans (just in case)
+############################
+# Eclipse
+.project
+.classpath
+.settings/
+
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+############################
+# Editors / tooling
+############################
+.vscode/
+*.swp
+*.swo
+*.tmp
+
+############################
+# Env / secrets
+############################
+.env
+.env.*
+*.key
+*.pem
+
+############################
+# Local data (optional)
+############################
+# Uncomment if you keep local scores only and don’t want them in git:
+# scores.csv
