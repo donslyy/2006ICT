@@ -12,13 +12,11 @@ public class ConfigView {
     public static Scene create(Stage stage) {
         var cfg = ConfigService.getInstance();
 
-        // ---- Staged (local) values for fields that can cause navigation elsewhere ----
         boolean stagedExtended = cfg.isExtendedMode();
         ConfigService.Mode stagedMode = cfg.getMode();
         ConfigService.PlayerType stagedP1 = cfg.getPlayer1Type();
         ConfigService.PlayerType stagedP2 = cfg.getPlayer2Type();
 
-        // === Field size & level === (these can remain immediate, or buffer them too if you prefer)
         var widthLabel  = new Label("Field Width");
         var widthValue  = new Label(Integer.toString(cfg.getFieldWidth()));
         var widthSlider = sliderWithIntRange(8, 12, cfg.getFieldWidth(), widthValue);
@@ -34,7 +32,6 @@ public class ConfigView {
         var levelSlider = sliderWithIntRange(1, 10, cfg.getStartLevel(), levelValue);
         levelSlider.valueProperty().addListener((obs, a, b) -> { cfg.setStartLevel(b.intValue()); JsonConfigRepository.save(cfg); });
 
-        // === Toggles that are safe to save live ===
         var music  = new CheckBox("Music");
         music.setSelected(cfg.isMusicEnabled());
         music.selectedProperty().addListener((o, ov, nv) -> { cfg.setMusicEnabled(nv); JsonConfigRepository.save(cfg); });
@@ -43,11 +40,6 @@ public class ConfigView {
         sfx.setSelected(cfg.isSfxEnabled());
         sfx.selectedProperty().addListener((o, ov, nv) -> { cfg.setSfxEnabled(nv); JsonConfigRepository.save(cfg); });
 
-        var aiPlay = new CheckBox("AI Play");
-        aiPlay.setSelected(cfg.isAiPlay());
-        aiPlay.selectedProperty().addListener((o, ov, nv) -> { cfg.setAiPlay(nv); JsonConfigRepository.save(cfg); });
-
-        // === Extended / Mode / Player Types — STAGED (not saved until Save/Back) ===
         var extend = new CheckBox("Extended Mode");
         extend.setSelected(stagedExtended);
 
@@ -66,31 +58,40 @@ public class ConfigView {
         p2Box.getItems().setAll(ConfigService.PlayerType.values());
         p2Box.getSelectionModel().select(stagedP2);
 
-        // Rows we show/hide
+        var aiPlay = new CheckBox("AI Play");
+        aiPlay.setSelected(cfg.isAiPlay());
+        aiPlay.selectedProperty().addListener((o, ov, nv) -> {
+            cfg.setAiPlay(nv);
+            if (nv) {
+                cfg.setPlayer1Type(ConfigService.PlayerType.AI);
+                cfg.setPlayer2Type(ConfigService.PlayerType.AI);
+            } else {
+                if (cfg.getPlayer1Type() == ConfigService.PlayerType.AI) cfg.setPlayer1Type(ConfigService.PlayerType.HUMAN);
+                if (cfg.getPlayer2Type() == ConfigService.PlayerType.AI) cfg.setPlayer2Type(ConfigService.PlayerType.HUMAN);
+            }
+            JsonConfigRepository.save(cfg);
+            p1Box.getSelectionModel().select(cfg.getPlayer1Type());
+            p2Box.getSelectionModel().select(cfg.getPlayer2Type());
+        });
+
         var modeRow = labeledRow(modeLbl, modeBox);
         var p1Row   = labeledRow(p1Lbl, p1Box);
         var p2Row   = labeledRow(p2Lbl, p2Box);
 
-        // --- Local staged updates only (no cfg writes here) ---
         extend.selectedProperty().addListener((obs, ov, nv) -> {
-            // Update staged flag only
-            // If you want to automatically force ONE_PLAYER when disabling extended, do it staged here:
-            // if (!nv) modeBox.getSelectionModel().select(ConfigService.Mode.ONE_PLAYER);
+            if (!nv && modeBox.getValue() == ConfigService.Mode.TWO_PLAYER) {
+                modeBox.getSelectionModel().select(ConfigService.Mode.ONE_PLAYER);
+            }
             refreshVisibility(nv, modeBox.getValue(), modeRow, p2Row);
         });
 
         modeBox.valueProperty().addListener((o, ov, nv) -> {
-            // If extended is off, prevent staging TWO_PLAYER by snapping back visually (still staged, not saved)
             if (!extend.isSelected() && nv == ConfigService.Mode.TWO_PLAYER) {
                 modeBox.getSelectionModel().select(ConfigService.Mode.ONE_PLAYER);
             }
             refreshVisibility(extend.isSelected(), modeBox.getValue(), modeRow, p2Row);
         });
 
-        // no immediate saves for p1/p2 either—purely staged
-        // (no listeners needed other than initial selection)
-
-        // Layout
         var grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(16);
@@ -102,24 +103,14 @@ public class ConfigView {
         var checks = new VBox(10, music, sfx, aiPlay, extend);
         checks.setAlignment(Pos.CENTER);
 
-        var sel = new VBox(10,
-                modeRow,
-                p1Row,
-                p2Row
-        );
+        var sel = new VBox(10, modeRow, p1Row, p2Row);
         sel.setAlignment(Pos.CENTER);
 
-        // Buttons
         var save = new Button("Save");
         save.setOnAction(e -> {
-            // Commit staged values to cfg NOW (single write point)
             boolean newExtended = extend.isSelected();
             ConfigService.Mode newMode = modeBox.getValue();
-            // If extended is off, force ONE_PLAYER on save
-            if (!newExtended && newMode == ConfigService.Mode.TWO_PLAYER) {
-                newMode = ConfigService.Mode.ONE_PLAYER;
-            }
-
+            if (!newExtended && newMode == ConfigService.Mode.TWO_PLAYER) newMode = ConfigService.Mode.ONE_PLAYER;
             ConfigService cs = ConfigService.getInstance();
             cs.setExtendedMode(newExtended);
             cs.setMode(newMode);
@@ -130,20 +121,15 @@ public class ConfigView {
 
         var back = new Button("Back");
         back.setOnAction(e -> {
-            // Optional: also commit on Back, or remove this block if you prefer Back to discard
             boolean newExtended = extend.isSelected();
             ConfigService.Mode newMode = modeBox.getValue();
-            if (!newExtended && newMode == ConfigService.Mode.TWO_PLAYER) {
-                newMode = ConfigService.Mode.ONE_PLAYER;
-            }
-
+            if (!newExtended && newMode == ConfigService.Mode.TWO_PLAYER) newMode = ConfigService.Mode.ONE_PLAYER;
             ConfigService cs = ConfigService.getInstance();
             cs.setExtendedMode(newExtended);
             cs.setMode(newMode);
             cs.setPlayer1Type(p1Box.getValue());
             cs.setPlayer2Type(p2Box.getValue());
             JsonConfigRepository.save(cs);
-
             stage.setScene(Main.buildMenuScene(stage));
         });
 
@@ -169,23 +155,17 @@ public class ConfigView {
         root.setCenter(center);
         root.setPrefSize(560, 720);
 
-        // Initial visibility based on staged values
         refreshVisibility(stagedExtended, stagedMode, modeRow, p2Row);
 
         return new Scene(root);
     }
 
-    /** Show/hide Mode and P2 rows based on staged Extended + Mode */
     private static void refreshVisibility(boolean extended,
                                           ConfigService.Mode modeVal,
                                           HBox modeRow, HBox p2Row) {
         boolean isTwoP = extended && modeVal == ConfigService.Mode.TWO_PLAYER;
-
-        // Mode row visible only when Extended is ON
         modeRow.setManaged(extended);
         modeRow.setVisible(extended);
-
-        // Player 2 row visible only when Extended is ON AND TWO_PLAYER selected
         p2Row.setManaged(isTwoP);
         p2Row.setVisible(isTwoP);
     }
