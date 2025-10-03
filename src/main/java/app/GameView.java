@@ -10,7 +10,9 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.Separator;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -23,7 +25,6 @@ public class GameView extends ScreenBase {
 
     private int COLS, ROWS;
     private static final int CELL = 24;
-    private static final int GRAVITY_MS = 700;
     private static final int LOCK_DELAY_MS = 500;
     private static final int CLEAR_FLASH_MS = 350;
 
@@ -43,8 +44,20 @@ public class GameView extends ScreenBase {
     private PauseTransition lockTimer = null;
 
     private Canvas canvas;
+    private Canvas previewCanvas;
+
     private int score = 0;
+    private int level = 1;
+    private int initLevel = 1;
+    private int lines = 0;
+
     private Label scoreLbl;
+    private Label infoPlayer;
+    private Label infoType;
+    private Label infoInitLevel;
+    private Label infoLevel;
+    private Label infoLines;
+    private Label infoHighScore;
 
     private final Deque<Tetromino> bag = new ArrayDeque<>();
     private final Random rng = new Random();
@@ -55,16 +68,38 @@ public class GameView extends ScreenBase {
     public Scene create(Stage stage) {
         this.stage = stage;
 
-        applyConfigAndResize(); // init COLS/ROWS/board/canvas
+        applyConfigAndResize();
 
-        scoreLbl = new Label("Score: 0");
+        scoreLbl = new Label();
         scoreLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
+
+        infoPlayer = new Label("Player: 1");
+        infoType = new Label("Type: " + ConfigService.getInstance().getPlayer1Type().name());
+        infoInitLevel = new Label();
+        infoLevel = new Label();
+        infoLines = new Label();
+        infoHighScore = new Label("High Score: " + topScore());
+
+        VBox infoBox = new VBox(6, infoPlayer, infoType, infoInitLevel, infoLevel, infoLines, infoHighScore);
+        infoBox.setAlignment(Pos.TOP_CENTER);
+
+        previewCanvas = new Canvas(6 * CELL, 6 * CELL);
+        Label nextLbl = new Label("Next Piece");
+        VBox nextBox = new VBox(6, nextLbl, previewCanvas);
+        nextBox.setAlignment(Pos.TOP_CENTER);
+
+        VBox sidebar = new VBox(12, infoBox, new Separator(), nextBox);
+        sidebar.setAlignment(Pos.TOP_CENTER);
+        sidebar.setPadding(new Insets(8));
 
         Button back = new Button("Back");
         back.setFocusTraversable(false);
         back.setOnAction(e -> stage.setScene(Main.buildMenuScene(stage)));
 
-        VBox content = new VBox(12, scoreLbl, canvas, back);
+        HBox playRow = new HBox(12, canvas, sidebar);
+        playRow.setAlignment(Pos.CENTER);
+
+        VBox content = new VBox(12, scoreLbl, playRow, back);
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(18));
         StackPane center = new StackPane(content);
@@ -90,7 +125,6 @@ public class GameView extends ScreenBase {
         });
         scene.setOnMouseClicked(ev -> canvas.requestFocus());
 
-        // react to config changes (width/height) by restarting with new size
         ConfigService.getInstance().addListener(c -> {
             int w = c.getFieldWidth(), h = c.getFieldHeight();
             if (w != COLS || h != ROWS) {
@@ -99,6 +133,7 @@ public class GameView extends ScreenBase {
                 newGame();
                 draw();
             }
+            infoType.setText("Type: " + c.getPlayer1Type().name());
         });
 
         newGame();
@@ -120,18 +155,29 @@ public class GameView extends ScreenBase {
 
     private void newGame() {
         for (var row : board) Arrays.fill(row, 0);
-        score = 0; updateScore();
+        score = 0;
+        lines = 0;
+        initLevel = ConfigService.getInstance().getStartLevel();
+        level = initLevel;
+        updateHud();
         isClearing = false;
         cancelLockTimer();
         bag.clear();
         refillBagIfNeeded();
         spawnFromBag();
         if (gravity != null) gravity.stop();
-        gravity = new Timeline(new KeyFrame(Duration.millis(GRAVITY_MS), e -> {
+        gravity = new Timeline(new KeyFrame(Duration.millis(gravityMs(level)), e -> {
             if (!paused && !isClearing) { tick(); draw(); }
         }));
         gravity.setCycleCount(Timeline.INDEFINITE);
         gravity.playFromStart();
+    }
+
+    private int gravityMs(int lvl) {
+        int base = 700;
+        int ms = base - (lvl - 1) * 60;
+        if (ms < 100) ms = 100;
+        return ms;
     }
 
     private void moved(boolean didMove) {
@@ -204,6 +250,11 @@ public class GameView extends ScreenBase {
         bag.addAll(all);
     }
 
+    private Optional<Tetromino> nextPiece() {
+        if (bag.isEmpty()) refillBagIfNeeded();
+        return Optional.ofNullable(bag.peekFirst());
+    }
+
     private boolean tryMove(int dr, int dc) {
         int nr = pr + dr, nc = pc + dc;
         if (canPlace(nr, nc, rotation)) { pr = nr; pc = nc; return true; }
@@ -263,7 +314,36 @@ public class GameView extends ScreenBase {
             draw();
         });
         flash.playFromStart();
-        addScore(rows.length * 100);
+        addScore(scoreForLines(rows.length));
+        lines += rows.length;
+        levelUpIfNeeded();
+        updateHud();
+        rebuildGravityIfNeeded();
+    }
+
+    private int scoreForLines(int n) {
+        return switch (n) {
+            case 1 -> 100;
+            case 2 -> 300;
+            case 3 -> 600;
+            case 4 -> 1000;
+            default -> 0;
+        };
+    }
+
+    private void levelUpIfNeeded() {
+        int target = initLevel + (lines / 10);
+        if (target > level) level = target;
+    }
+
+    private void rebuildGravityIfNeeded() {
+        if (gravity != null) {
+            gravity.stop();
+            gravity.getKeyFrames().setAll(new KeyFrame(Duration.millis(gravityMs(level)), e -> {
+                if (!paused && !isClearing) { tick(); draw(); }
+            }));
+            gravity.playFromStart();
+        }
     }
 
     private void applyRowClear(int[] rows) {
@@ -318,12 +398,20 @@ public class GameView extends ScreenBase {
             }
         }
 
-        if (paused) {
-            g.setFill(Color.color(0, 0, 0, 0.55));
-            g.fillRect(0, 0, COLS * CELL, ROWS * CELL);
-            g.setFill(Color.WHITE);
-            g.fillText("PAUSED (P)", COLS * CELL / 2.0 - 40, ROWS * CELL / 2.0);
-        }
+        drawPreview();
+    }
+
+    private void updateHud() {
+        scoreLbl.setText("Score: " + score);
+        infoInitLevel.setText("Initial Level: " + initLevel);
+        infoLevel.setText("Current Level: " + level);
+        infoLines.setText("Lines Cleared: " + lines);
+        infoHighScore.setText("High Score: " + topScore());
+    }
+
+    private int topScore() {
+        var list = HighScores.top();
+        return list.isEmpty() ? 0 : list.get(0).score();
     }
 
     private boolean isRowClearing(int r) {
@@ -341,8 +429,30 @@ public class GameView extends ScreenBase {
         g.fillRect(x + 1, y + 1, CELL - 2, CELL - 2);
     }
 
-    private void addScore(int delta) { score += delta; updateScore(); }
-    private void updateScore() { scoreLbl.setText("Score: " + score); }
+    private void drawPreview() {
+        var pg = previewCanvas.getGraphicsContext2D();
+        pg.setFill(Color.web("#1a1f27"));
+        pg.fillRect(0, 0, previewCanvas.getWidth(), previewCanvas.getHeight());
+        Optional<Tetromino> np = nextPiece();
+        if (np.isEmpty()) return;
+        Tetromino t = np.get();
+        int[][] s = t.shape(0);
+        int cell = CELL;
+        int w = 4 * cell, h = 4 * cell;
+        int offsetX = (int)((previewCanvas.getWidth() - w) / 2);
+        int offsetY = (int)((previewCanvas.getHeight() - h) / 2);
+        for (int r = 0; r < 4; r++) for (int c = 0; c < 4; c++) {
+            if (s[r][c] == 0) continue;
+            int x = offsetX + c * cell;
+            int y = offsetY + r * cell;
+            pg.setStroke(Color.web("#2a2f3a"));
+            pg.strokeRect(x, y, cell, cell);
+            pg.setFill(colors[t.id()]);
+            pg.fillRect(x + 1, y + 1, cell - 2, cell - 2);
+        }
+    }
+
+    private void addScore(int delta) { score += delta; updateHud(); }
 
     private enum Tetromino implements Piece {
         NONE(0, new int[][]{{0,0,0,0},{0,0,0,0},{0,0,0,0},{0,0,0,0}}),

@@ -1,8 +1,8 @@
 {
  "fieldWidth": 10,
- "fieldHeight": 24,
+ "fieldHeight": 20,
  "blockSize": 24,
- "startLevel": 1,
+ "startLevel": 10,
  "musicEnabled": false,
  "sfxEnabled": false,
  "aiPlay": false,
