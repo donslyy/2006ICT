@@ -5,10 +5,10 @@
  "startLevel": 1,
  "musicEnabled": false,
  "sfxEnabled": false,
- "aiPlay": false,
+ "aiPlay": true,
  "extendedMode": false,
  "mode": "ONE_PLAYER",
- "player1Type": "EXTERNAL",
+ "player1Type": "AI",
  "player2Type": "AI",
  "serverHost": "localhost",
  "serverPort": 3000

@@ -25,13 +25,21 @@ public class GameView extends ScreenBase {
     // ====== Player-facing mini interface for AI ======
     interface Player {
         int cols();
-        int col();
+        int rows();
+        int[][] board();
+        int pieceId();
+        int pieceRow();
+        int pieceCol();
+        int pieceRot();
+        int[][] pieceShape(int rot);
+        boolean canPlace(int row, int col, int rot);
         void moveLeft();
         void moveRight();
         void softDrop();
         void hardDrop();
         void rotate();
     }
+
 
     private int COLS, ROWS;
     private static final int CELL = 24;
@@ -119,6 +127,11 @@ public class GameView extends ScreenBase {
         back.setDefaultButton(false);
         back.setOnAction(e -> {
             active = false;
+            if (gravityTick != null) gravityTick.stop();
+            if (p1 != null && p1.lockTimer != null) { p1.lockTimer.stop(); p1.lockTimer = null; }
+            if (p2 != null && p2.lockTimer != null) { p2.lockTimer.stop(); p2.lockTimer = null; }
+            stopExternal(p1);
+            stopExternal(p2);
             stage.setScene(Main.buildMenuScene(stage));
         });
         back.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
@@ -290,60 +303,31 @@ public class GameView extends ScreenBase {
 
 
     private void newGame() {
-        System.out.println("[GAME] newGame() starting");
-
-        // fresh run state
-        paused = false;
         gameOverShown = false;
-
-        // Ensure shared sequence has content
         ensureSeq();
 
-        // If you might be restarting a game, stop any existing external clients first
-        stopExternal(p1);
-        stopExternal(p2);
-
-        // Reset players (preserve the same PState instances so UI bindings remain)
         resetPlayer(p1);
         if (p2 != null) resetPlayer(p2);
 
-        // Spawn initial pieces BEFORE talking to external so first snapshot is meaningful
         spawn(p1);
         if (p2 != null) spawn(p2);
 
-        // Start external control (only if type == EXTERNAL)
+        stopExternal(p1);
+        stopExternal(p2);
+
         startExternal(p1);
         startExternal(p2);
 
-        // Send initial board snapshot(s) immediately after clients start
-        if (p1.type == ConfigService.PlayerType.EXTERNAL && p1.client != null) {
-            String j1 = snapshotJson(p1);
-            System.out.println("[GAME] initial snapshot P1 -> len=" + j1.length());
-            p1.client.sendJson(j1);
-        }
-        if (p2 != null && p2.type == ConfigService.PlayerType.EXTERNAL && p2.client != null) {
-            String j2 = snapshotJson(p2);
-            System.out.println("[GAME] initial snapshot P2 -> len=" + j2.length());
-            p2.client.sendJson(j2);
-        }
-
-        // (Re)build gravity timeline
-        if (gravityTick != null) {
-            gravityTick.stop();
-        }
+        if (gravityTick != null) gravityTick.stop();
         gravityTick = new Timeline(new KeyFrame(Duration.millis(gravMs(p1.level)), e -> {
             if (!paused) {
                 tick(p1);
                 if (p1.type == ConfigService.PlayerType.AI) ai.step(p1);
-
                 if (p2 != null) {
                     tick(p2);
                     if (p2.type == ConfigService.PlayerType.AI) ai.step(p2);
                 }
-
                 redrawAll();
-
-                // Push live snapshots to external server each tick
                 if (p1.type == ConfigService.PlayerType.EXTERNAL && p1.client != null) {
                     p1.client.sendJson(snapshotJson(p1));
                 }
@@ -355,12 +339,14 @@ public class GameView extends ScreenBase {
         gravityTick.setCycleCount(Timeline.INDEFINITE);
         gravityTick.playFromStart();
 
-        updateAllLabels();
+        if (p1.type == ConfigService.PlayerType.EXTERNAL && p1.client != null) {
+            p1.client.sendJson(snapshotJson(p1));
+        }
+        if (p2 != null && p2.type == ConfigService.PlayerType.EXTERNAL && p2.client != null) {
+            p2.client.sendJson(snapshotJson(p2));
+        }
 
-        System.out.println("[GAME] newGame() ready. cols=" + COLS + " rows=" + ROWS +
-                " p2=" + (p2 != null) +
-                " p1Type=" + p1.type +
-                (p2 != null ? (" p2Type=" + p2.type) : ""));
+        updateAllLabels();
     }
 
     private void startExternal(PState p) {
@@ -405,10 +391,12 @@ public class GameView extends ScreenBase {
     }
 
     private void stopExternal(PState p) {
-        try { if (p != null && p.client != null) p.client.stop(); } catch (Exception ignored) {}
+        if (p == null) return;
+        try { if (p.client != null) p.client.stop(); } catch (Exception ignored) {}
         p.client = null;
         p.clientThread = null;
     }
+
 
 
     private void resetPlayer(PState p) {
@@ -546,6 +534,8 @@ public class GameView extends ScreenBase {
     private void onGameOver(PState p) {
         p.dead = true;
 
+        if (!active || stage.getScene() != sceneRef) return;
+
         if (!(p1.dead && (p2 == null || p2.dead))) return;
 
         if (gameOverShown) return;
@@ -556,13 +546,12 @@ public class GameView extends ScreenBase {
         if (p2 != null && p2.lockTimer != null) { p2.lockTimer.stop(); p2.lockTimer = null; }
 
         Platform.runLater(() -> {
+            if (!active || stage.getScene() != sceneRef) return;
             int best = Math.max(p1.score, p2 == null ? 0 : p2.score);
-
             var dialog = new javafx.scene.control.TextInputDialog("Devlin Hampson");
             dialog.setTitle("Game Over");
             dialog.setHeaderText("Game Over — Best Score: " + best);
             dialog.setContentText("Enter your name:");
-
             String name = dialog.showAndWait().orElse("").trim();
             HighScores.add(name, best);
             stage.setScene(HighScoresView.create(stage));
@@ -757,9 +746,8 @@ public class GameView extends ScreenBase {
         for (int r = write; r >= 0; r--) Arrays.fill(board[r], 0);
     }
 
-    // ====== Player State (implements the AI-facing Player interface) ======
     private final class PState implements Player {
-        final int id; // 1 or 2
+        final int id;
         final ConfigService.PlayerType type;
         final int[][] board;
 
@@ -770,15 +758,13 @@ public class GameView extends ScreenBase {
         boolean clearing = false, dead = false;
         int[] clearingRows = new int[0];
 
-        int seqIdx = 0;                 // personal read index into shared sequence
+        int seqIdx = 0;
         PauseTransition lockTimer;
 
-        // Sidebar UI labels (wired by buildSidebar)
         Label uiType, uiInit, uiLevel, uiLines, uiScore, uiHigh, uiConn;
 
-        // External control (only used when type == EXTERNAL)
         java.util.concurrent.ConcurrentLinkedQueue<String> extQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
-        ExternalClient client;          // background network client
+        ExternalClient client;
         Thread clientThread;
 
         PState(int id, ConfigService.PlayerType type, int cols, int rows) {
@@ -789,15 +775,23 @@ public class GameView extends ScreenBase {
             this.level = this.initLevel;
         }
 
-        // === Player interface for AI/drivers ===
         @Override public int cols() { return COLS; }
-        @Override public int col()  { return col; }
+        @Override public int rows() { return ROWS; }
+        @Override public int[][] board() { return board; }
+        @Override public int pieceId() { return piece == null ? 0 : piece.id(); }
+        @Override public int pieceRow() { return row; }
+        @Override public int pieceCol() { return col; }
+        @Override public int pieceRot() { return rot; }
+        @Override public int[][] pieceShape(int r) { return piece == null ? new int[4][4] : piece.shape(r); }
+        @Override public boolean canPlace(int r0, int c0, int r) { return GameView.this.canPlace(this, r0, c0, r); }
+
         @Override public void moveLeft()  { tryMove(this, 0, -1); }
         @Override public void moveRight() { tryMove(this, 0,  1); }
         @Override public void softDrop()  { softDropOne(this); }
         @Override public void hardDrop()  { hardDropNow(this); }
         @Override public void rotate()    { tryRotate(this); }
     }
+
 
     // movement helpers
     private boolean tryMove(PState p, int dr, int dc) {
