@@ -2,14 +2,14 @@
  "fieldWidth": 10,
  "fieldHeight": 20,
  "blockSize": 24,
- "startLevel": 10,
+ "startLevel": 1,
  "musicEnabled": false,
  "sfxEnabled": false,
  "aiPlay": false,
  "extendedMode": false,
  "mode": "ONE_PLAYER",
- "player1Type": "HUMAN",
- "player2Type": "AI",
+ "player1Type": "EXTERNAL",
+ "player2Type": "EXTERNAL",
  "serverHost": "localhost",
  "serverPort": 3000
 }

@@ -21,7 +21,7 @@ public class SplashView {
         name.setStyle("-fx-font-size: 16px;");
         var sid = new Label("s5334585");
         var group = new Label("Group 36");
-        var subtitle = new Label("Milestone 1 Demo");
+        var subtitle = new Label("Milestone 2 Demo");
 
         var content = new VBox(8, name, sid, group, subtitle);
         content.setAlignment(Pos.CENTER);

@@ -43,6 +43,25 @@ public class ConfigView {
         extend.setSelected(cfg.isExtendedMode());
         extend.selectedProperty().addListener((o, ov, nv) -> { cfg.setExtendedMode(nv); JsonConfigRepository.save(cfg); });
 
+        // NEW: Mode + Player types
+        var modeLbl = new Label("Mode");
+        var modeBox = new ComboBox<ConfigService.Mode>();
+        modeBox.getItems().setAll(ConfigService.Mode.values());
+        modeBox.getSelectionModel().select(cfg.getMode());
+        modeBox.valueProperty().addListener((o,ov,nv)->{ cfg.setMode(nv); JsonConfigRepository.save(cfg); });
+
+        var p1Lbl = new Label("Player 1 Type");
+        var p1Box = new ComboBox<ConfigService.PlayerType>();
+        p1Box.getItems().setAll(ConfigService.PlayerType.values());
+        p1Box.getSelectionModel().select(cfg.getPlayer1Type());
+        p1Box.valueProperty().addListener((o,ov,nv)->{ cfg.setPlayer1Type(nv); JsonConfigRepository.save(cfg); });
+
+        var p2Lbl = new Label("Player 2 Type");
+        var p2Box = new ComboBox<ConfigService.PlayerType>();
+        p2Box.getItems().setAll(ConfigService.PlayerType.values());
+        p2Box.getSelectionModel().select(cfg.getPlayer2Type());
+        p2Box.valueProperty().addListener((o,ov,nv)->{ cfg.setPlayer2Type(nv); JsonConfigRepository.save(cfg); });
+
         var grid = new GridPane();
         grid.setHgap(12);
         grid.setVgap(16);
@@ -54,10 +73,17 @@ public class ConfigView {
         var checks = new VBox(10, music, sfx, aiPlay, extend);
         checks.setAlignment(Pos.CENTER);
 
+        var sel = new VBox(10,
+                labeledRow(modeLbl, modeBox),
+                labeledRow(p1Lbl, p1Box),
+                labeledRow(p2Lbl, p2Box)
+        );
+        sel.setAlignment(Pos.CENTER);
+
         var back = new Button("Back");
         back.setOnAction(e -> stage.setScene(Main.buildMenuScene(stage)));
 
-        var content = new VBox(18, grid, new Separator(), new Label("Options"), checks, back);
+        var content = new VBox(18, grid, new Separator(), new Label("Options"), checks, new Separator(), sel, back);
         content.setAlignment(Pos.CENTER);
         content.setPadding(new Insets(18));
 
@@ -74,7 +100,7 @@ public class ConfigView {
         var root = new BorderPane();
         root.setTop(titleBox);
         root.setCenter(center);
-        root.setPrefSize(480, 700);
+        root.setPrefSize(560, 720);
 
         return new Scene(root);
     }
@@ -95,6 +121,13 @@ public class ConfigView {
         label.setMinWidth(130);
         value.setMinWidth(40);
         var box = new HBox(10, label, slider, value);
+        box.setAlignment(Pos.CENTER);
+        return box;
+    }
+
+    private static HBox labeledRow(Label l, Control c) {
+        l.setMinWidth(130);
+        var box = new HBox(10, l, c);
         box.setAlignment(Pos.CENTER);
         return box;
     }
