@@ -10,22 +10,38 @@ import javafx.stage.Stage;
 public class ConfigView {
 
     public static Scene create(Stage stage) {
+        var cfg = ConfigService.getInstance();
+
         var widthLabel  = new Label("Field Width");
-        var widthValue  = new Label("15");
-        var widthSlider = sliderWithIntRange(15, 20, 15, widthValue);
+        var widthValue  = new Label(Integer.toString(cfg.getFieldWidth()));
+        var widthSlider = sliderWithIntRange(15, 20, cfg.getFieldWidth(), widthValue);
+        widthSlider.valueProperty().addListener((obs, a, b) -> { cfg.setFieldWidth(b.intValue()); JsonConfigRepository.save(cfg); });
 
         var heightLabel  = new Label("Field Height");
-        var heightValue  = new Label("20");
-        var heightSlider = sliderWithIntRange(16, 24, 20, heightValue);
+        var heightValue  = new Label(Integer.toString(cfg.getFieldHeight()));
+        var heightSlider = sliderWithIntRange(16, 24, cfg.getFieldHeight(), heightValue);
+        heightSlider.valueProperty().addListener((obs, a, b) -> { cfg.setFieldHeight(b.intValue()); JsonConfigRepository.save(cfg); });
 
         var levelLabel  = new Label("Game Level");
-        var levelValue  = new Label("1");
-        var levelSlider = sliderWithIntRange(1, 10, 1, levelValue);
+        var levelValue  = new Label(Integer.toString(cfg.getStartLevel()));
+        var levelSlider = sliderWithIntRange(1, 10, cfg.getStartLevel(), levelValue);
+        levelSlider.valueProperty().addListener((obs, a, b) -> { cfg.setStartLevel(b.intValue()); JsonConfigRepository.save(cfg); });
 
         var music  = new CheckBox("Music");
+        music.setSelected(cfg.isMusicEnabled());
+        music.selectedProperty().addListener((o, ov, nv) -> { cfg.setMusicEnabled(nv); JsonConfigRepository.save(cfg); });
+
         var sfx    = new CheckBox("Sound Effects");
+        sfx.setSelected(cfg.isSfxEnabled());
+        sfx.selectedProperty().addListener((o, ov, nv) -> { cfg.setSfxEnabled(nv); JsonConfigRepository.save(cfg); });
+
         var aiPlay = new CheckBox("AI Play");
+        aiPlay.setSelected(cfg.isAiPlay());
+        aiPlay.selectedProperty().addListener((o, ov, nv) -> { cfg.setAiPlay(nv); JsonConfigRepository.save(cfg); });
+
         var extend = new CheckBox("Extended Mode");
+        extend.setSelected(cfg.isExtendedMode());
+        extend.selectedProperty().addListener((o, ov, nv) -> { cfg.setExtendedMode(nv); JsonConfigRepository.save(cfg); });
 
         var grid = new GridPane();
         grid.setHgap(12);
@@ -70,6 +86,7 @@ public class ConfigView {
         s.setShowTickMarks(true);
         s.setShowTickLabels(true);
         s.setSnapToTicks(true);
+        out.setText(Integer.toString((int) Math.round(s.getValue())));
         s.valueProperty().addListener((obs, a, b) -> out.setText(Integer.toString(b.intValue())));
         return s;
     }
