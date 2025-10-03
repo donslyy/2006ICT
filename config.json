@@ -9,7 +9,7 @@
  "extendedMode": false,
  "mode": "ONE_PLAYER",
  "player1Type": "EXTERNAL",
- "player2Type": "EXTERNAL",
+ "player2Type": "AI",
  "serverHost": "localhost",
  "serverPort": 3000
 }

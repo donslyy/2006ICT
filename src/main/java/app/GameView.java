@@ -3,6 +3,7 @@ package app;
 import javafx.animation.KeyFrame;
 import javafx.animation.PauseTransition;
 import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -48,6 +49,11 @@ public class GameView extends ScreenBase {
 
     private Stage stage;
     private boolean paused = false;
+    private boolean active = false;
+    private Scene sceneRef = null;
+    private boolean gameOverShown = false;
+
+
 
     // Shared piece sequence for both players (ensures same order)
     private final List<Tetromino> seq = new ArrayList<>();
@@ -63,36 +69,33 @@ public class GameView extends ScreenBase {
     private Timeline gravityTick;
     private final SimpleAI ai = new SimpleAI();
 
+    // Helper: only allow 2P when Extended Mode is ON and Mode == TWO_PLAYER
+    private boolean isExtendTwoPlayer() {
+        var cfg = ConfigService.getInstance();
+        return cfg.isExtendedMode() && cfg.getMode() == ConfigService.Mode.TWO_PLAYER;
+    }
+
     public Scene create(Stage stage) {
         this.stage = stage;
 
         applyConfig();
 
-        // Create player states NOW so buildSidebar can bind labels safely
         var cfg = ConfigService.getInstance();
         p1 = new PState(1, cfg.getPlayer1Type(), COLS, ROWS);
-        if (cfg.getMode() == ConfigService.Mode.TWO_PLAYER) {
-            p2 = new PState(2, cfg.getPlayer2Type(), COLS, ROWS);
-        } else {
-            p2 = null;
-        }
+        p2 = isExtendTwoPlayer() ? new PState(2, cfg.getPlayer2Type(), COLS, ROWS) : null;
 
-        // Build layout
         BorderPane root = new BorderPane();
 
-        // Header
         topScoreLbl = new Label("Scores");
         topScoreLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
         var header = new HBox(topScoreLbl);
         header.setAlignment(Pos.CENTER);
         header.setPadding(new Insets(10, 0, 0, 0));
 
-        // Playfields
         var fieldsRow = new HBox(16);
         fieldsRow.setAlignment(Pos.CENTER);
         fieldsRow.setPadding(new Insets(10));
 
-        // P1 canvas & sidebar
         playCanvas1 = new Canvas(COLS * CELL, ROWS * CELL);
         preview1 = new Canvas(6 * CELL, 6 * CELL);
         VBox side1 = buildSidebar("Player 1", p1, preview1);
@@ -100,7 +103,6 @@ public class GameView extends ScreenBase {
         p1Block.setAlignment(Pos.CENTER_LEFT);
         fieldsRow.getChildren().add(p1Block);
 
-        // P2 if enabled
         boolean twoPlayer = (p2 != null);
         if (twoPlayer) {
             playCanvas2 = new Canvas(COLS * CELL, ROWS * CELL);
@@ -112,11 +114,16 @@ public class GameView extends ScreenBase {
             fieldsRow.getChildren().add(p2Block);
         }
 
-        // Footer
         Button back = new Button("Back");
-        back.setFocusTraversable(false);   
+        back.setFocusTraversable(false);
         back.setDefaultButton(false);
-        back.setOnAction(e -> stage.setScene(Main.buildMenuScene(stage)));
+        back.setOnAction(e -> {
+            active = false;
+            stage.setScene(Main.buildMenuScene(stage));
+        });
+        back.addEventFilter(javafx.scene.input.KeyEvent.KEY_PRESSED, ev -> {
+            if (ev.getCode() == KeyCode.SPACE) ev.consume();
+        });
         var footer = new HBox(back);
         footer.setAlignment(Pos.CENTER);
         footer.setPadding(new Insets(10));
@@ -127,21 +134,65 @@ public class GameView extends ScreenBase {
         root.setPrefSize(twoPlayer ? 1000 : 600, 720);
 
         Scene scene = sceneWithTopTitleAndCenter(new StackPane(root), "Play");
+        this.sceneRef = scene;
+        this.active = true;
+        scene.windowProperty().addListener((obs, oldWin, newWin) -> {
+            if (newWin != null) {
+                newWin.setOnHidden(ev -> active = false);
+            }
+        });
 
-        // Input mapping
+        playCanvas1.setFocusTraversable(true);
+        playCanvas1.setOnMouseClicked(ev -> playCanvas1.requestFocus());
+        if (playCanvas2 != null) {
+            playCanvas2.setFocusTraversable(true);
+            playCanvas2.setOnMouseClicked(ev -> playCanvas2.requestFocus());
+        }
+        Platform.runLater(() -> {
+            if (playCanvas1 != null) playCanvas1.requestFocus();
+        });
+
+        // input mapping
         scene.setOnKeyPressed(e -> {
-            if (e.getCode() == KeyCode.P) { togglePause(); return; }
+            var cfgNow = ConfigService.getInstance();
+            // global toggles
+            switch (e.getCode()) {
+                case P -> { togglePause(); return; }
+                case S -> { cfgNow.setSfxEnabled(!cfgNow.isSfxEnabled()); JsonConfigRepository.save(cfgNow); return; }
+                case M -> { cfgNow.setMusicEnabled(!cfgNow.isMusicEnabled()); JsonConfigRepository.save(cfgNow); return; }
+                default -> {}
+            }
             if (paused) return;
-            handleKeysForP1(e.getCode());
-            if (p2 != null) handleKeysForP2(e.getCode());
+
+            // 2P is only active with Extended Mode + TWO_PLAYER
+            if (isExtendTwoPlayer()) {
+                handleP1_Controls_Extend(e.getCode());
+                if (p2 != null) handleP2_Controls_Extend(e.getCode());
+            } else {
+                handleP1_Controls_Single(e.getCode());
+            }
+
             redrawAll();
         });
 
-        // React to config changes (board size)
-        ConfigService.getInstance().addListener(c -> {
-            if (c.getFieldWidth() != COLS || c.getFieldHeight() != ROWS) {
+        var cs = ConfigService.getInstance();
+        cs.addListener(c -> {
+            if (!active || stage.getScene() != scene) return;
+
+            boolean sizeChanged = (c.getFieldWidth() != COLS || c.getFieldHeight() != ROWS);
+            boolean wantP2 = isExtendTwoPlayer();
+            boolean haveP2 = (p2 != null);
+
+            if (sizeChanged) {
                 applyConfig();
-                // Resize canvases
+            }
+
+            if (wantP2 != haveP2) {
+                stage.setScene(create(stage));
+                return;
+            }
+
+            if (sizeChanged) {
                 playCanvas1.setWidth(COLS * CELL);
                 playCanvas1.setHeight(ROWS * CELL);
                 if (playCanvas2 != null) {
@@ -161,15 +212,21 @@ public class GameView extends ScreenBase {
         Label titleLbl = new Label(title);
         titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
 
-        Label typeLbl = new Label();
+        Label typeLbl    = new Label();
         Label initLvlLbl = new Label();
-        Label lvlLbl = new Label();
-        Label linesLbl = new Label();
-        Label scoreLbl = new Label();
-        Label hiLbl = new Label("High Score: " + topScore());
+        Label lvlLbl     = new Label();
+        Label linesLbl   = new Label();
+        Label scoreLbl   = new Label();
+        Label hiLbl      = new Label("High Score: " + topScore());
 
         VBox info = new VBox(6, titleLbl, typeLbl, initLvlLbl, lvlLbl, linesLbl, scoreLbl, hiLbl);
         info.setAlignment(Pos.TOP_CENTER);
+
+        if (target.type == ConfigService.PlayerType.EXTERNAL) {
+            Label connLbl = new Label("External: disconnected (start server on localhost:3000)");
+            info.getChildren().add(1, connLbl); // insert right under the title
+            target.uiConn = connLbl;
+        }
 
         Label nextLbl = new Label("Next Piece");
         VBox next = new VBox(6, nextLbl, previewCanvas);
@@ -179,13 +236,12 @@ public class GameView extends ScreenBase {
         box.setAlignment(Pos.TOP_CENTER);
         box.setPadding(new Insets(6));
 
-        // bind labels to this target player
-        target.uiType = typeLbl;
-        target.uiInit = initLvlLbl;
+        target.uiType  = typeLbl;
+        target.uiInit  = initLvlLbl;
         target.uiLevel = lvlLbl;
         target.uiLines = linesLbl;
         target.uiScore = scoreLbl;
-        target.uiHigh = hiLbl;
+        target.uiHigh  = hiLbl;
 
         return box;
     }
@@ -196,33 +252,164 @@ public class GameView extends ScreenBase {
         ROWS = cfg.getFieldHeight();
     }
 
-    private void newGame() {
-        ensureSeq(); // have an initial bag
+    // Single-player (not extend): P1 accepts both punctuation and arrows; Space = soft drop
+    private void handleP1_Controls_Single(KeyCode code) {
+        if (p1.type != ConfigService.PlayerType.HUMAN) return;
+        switch (code) {
+            case COMMA, LEFT -> p1.moveLeft();
+            case PERIOD, RIGHT -> p1.moveRight();
+            case SPACE, DOWN -> p1.softDrop();   // Space = move down
+            case L, UP -> p1.rotate();
+            default -> {}
+        }
+    }
 
-        // reset players (don’t replace the objects; labels remain bound)
+    // Extend mode: P1 punctuation + Space + L; Space = soft drop
+    private void handleP1_Controls_Extend(KeyCode code) {
+        if (p1.type != ConfigService.PlayerType.HUMAN) return;
+        switch (code) {
+            case COMMA -> p1.moveLeft();
+            case PERIOD -> p1.moveRight();
+            case SPACE -> p1.softDrop();         // Space = move down
+            case L -> p1.rotate();
+            default -> {}
+        }
+    }
+
+    // Extend mode: P2 arrows only
+    private void handleP2_Controls_Extend(KeyCode code) {
+        if (p2 == null || p2.type != ConfigService.PlayerType.HUMAN) return;
+        switch (code) {
+            case LEFT  -> p2.moveLeft();
+            case RIGHT -> p2.moveRight();
+            case DOWN, SPACE -> p2.softDrop();
+            case UP    -> p2.rotate();
+            default -> {}
+        }
+    }
+
+
+    private void newGame() {
+        System.out.println("[GAME] newGame() starting");
+
+        // fresh run state
+        paused = false;
+        gameOverShown = false;
+
+        // Ensure shared sequence has content
+        ensureSeq();
+
+        // If you might be restarting a game, stop any existing external clients first
+        stopExternal(p1);
+        stopExternal(p2);
+
+        // Reset players (preserve the same PState instances so UI bindings remain)
         resetPlayer(p1);
         if (p2 != null) resetPlayer(p2);
 
+        // Spawn initial pieces BEFORE talking to external so first snapshot is meaningful
         spawn(p1);
         if (p2 != null) spawn(p2);
 
-        if (gravityTick != null) gravityTick.stop();
+        // Start external control (only if type == EXTERNAL)
+        startExternal(p1);
+        startExternal(p2);
+
+        // Send initial board snapshot(s) immediately after clients start
+        if (p1.type == ConfigService.PlayerType.EXTERNAL && p1.client != null) {
+            String j1 = snapshotJson(p1);
+            System.out.println("[GAME] initial snapshot P1 -> len=" + j1.length());
+            p1.client.sendJson(j1);
+        }
+        if (p2 != null && p2.type == ConfigService.PlayerType.EXTERNAL && p2.client != null) {
+            String j2 = snapshotJson(p2);
+            System.out.println("[GAME] initial snapshot P2 -> len=" + j2.length());
+            p2.client.sendJson(j2);
+        }
+
+        // (Re)build gravity timeline
+        if (gravityTick != null) {
+            gravityTick.stop();
+        }
         gravityTick = new Timeline(new KeyFrame(Duration.millis(gravMs(p1.level)), e -> {
             if (!paused) {
                 tick(p1);
                 if (p1.type == ConfigService.PlayerType.AI) ai.step(p1);
+
                 if (p2 != null) {
                     tick(p2);
                     if (p2.type == ConfigService.PlayerType.AI) ai.step(p2);
                 }
+
                 redrawAll();
+
+                // Push live snapshots to external server each tick
+                if (p1.type == ConfigService.PlayerType.EXTERNAL && p1.client != null) {
+                    p1.client.sendJson(snapshotJson(p1));
+                }
+                if (p2 != null && p2.type == ConfigService.PlayerType.EXTERNAL && p2.client != null) {
+                    p2.client.sendJson(snapshotJson(p2));
+                }
             }
         }));
         gravityTick.setCycleCount(Timeline.INDEFINITE);
         gravityTick.playFromStart();
 
         updateAllLabels();
+
+        System.out.println("[GAME] newGame() ready. cols=" + COLS + " rows=" + ROWS +
+                " p2=" + (p2 != null) +
+                " p1Type=" + p1.type +
+                (p2 != null ? (" p2Type=" + p2.type) : ""));
     }
+
+    private void startExternal(PState p) {
+        if (p == null || p.type != ConfigService.PlayerType.EXTERNAL) return;
+        if (p.clientThread != null && p.clientThread.isAlive()) return;
+
+        System.out.println("[EXT] startExternal P" + p.id + " connecting...");
+
+        p.client = new ExternalClient(
+                "localhost",
+                3000,
+                // onCommand
+                cmd -> Platform.runLater(() -> {
+                    if (p.dead || p.clearing) return;
+                    switch (cmd) {
+                        case "LEFT"   -> p.moveLeft();
+                        case "RIGHT"  -> p.moveRight();
+                        case "DOWN"   -> p.softDrop();
+                        case "ROTATE" -> p.rotate();
+                        case "DROP"   -> p.hardDrop();
+                        case "PAUSE"  -> togglePause();
+                        default -> {}
+                    }
+                    redrawAll();
+                    // push a fresh snapshot after each command so the server always has state
+                    if (p.client != null) p.client.sendJson(snapshotJson(p));
+                }),
+                // onConnectionChange
+                connected -> Platform.runLater(() -> {
+                    if (p.uiConn != null) {
+                        p.uiConn.setText(connected ? "External: connected" : "External: disconnected");
+                    }
+                    System.out.println("[EXT] P" + p.id + " connected=" + connected);
+                }),
+                // initialStateSupplier (sent by ExternalClient on connect)
+                () -> snapshotJson(p)
+        );
+
+        p.clientThread = new Thread(p.client, "ExternalClient-P" + p.id);
+        p.clientThread.setDaemon(true);
+        p.clientThread.start();
+    }
+
+    private void stopExternal(PState p) {
+        try { if (p != null && p.client != null) p.client.stop(); } catch (Exception ignored) {}
+        p.client = null;
+        p.clientThread = null;
+    }
+
 
     private void resetPlayer(PState p) {
         p.dead = false;
@@ -235,29 +422,6 @@ public class GameView extends ScreenBase {
         p.lockTimer = null;
         p.initLevel = ConfigService.getInstance().getStartLevel();
         p.level = p.initLevel;
-    }
-
-    // ====== Controls ======
-    private void handleKeysForP1(KeyCode code) {
-        if (p1.type != ConfigService.PlayerType.HUMAN) return;
-        switch (code) {
-            case A -> p1.moveLeft();
-            case D -> p1.moveRight();
-            case S -> p1.softDrop();
-            case W -> p1.rotate();
-            case SPACE -> p1.hardDrop();
-        }
-    }
-
-    private void handleKeysForP2(KeyCode code) {
-        if (p2 == null || p2.type != ConfigService.PlayerType.HUMAN) return;
-        switch (code) {
-            case LEFT -> p2.moveLeft();
-            case RIGHT -> p2.moveRight();
-            case DOWN -> p2.softDrop();
-            case UP -> p2.rotate();
-            case ENTER -> p2.hardDrop();
-        }
     }
 
     private void togglePause() {
@@ -381,17 +545,28 @@ public class GameView extends ScreenBase {
 
     private void onGameOver(PState p) {
         p.dead = true;
-        if (p1.dead && (p2 == null || p2.dead)) {
+
+        if (!(p1.dead && (p2 == null || p2.dead))) return;
+
+        if (gameOverShown) return;
+        gameOverShown = true;
+
+        if (gravityTick != null) gravityTick.stop();
+        if (p1.lockTimer != null) { p1.lockTimer.stop(); p1.lockTimer = null; }
+        if (p2 != null && p2.lockTimer != null) { p2.lockTimer.stop(); p2.lockTimer = null; }
+
+        Platform.runLater(() -> {
             int best = Math.max(p1.score, p2 == null ? 0 : p2.score);
-            if (gravityTick != null) gravityTick.stop();
+
             var dialog = new javafx.scene.control.TextInputDialog("Devlin Hampson");
             dialog.setTitle("Game Over");
             dialog.setHeaderText("Game Over — Best Score: " + best);
             dialog.setContentText("Enter your name:");
+
             String name = dialog.showAndWait().orElse("").trim();
             HighScores.add(name, best);
             stage.setScene(HighScoresView.create(stage));
-        }
+        });
     }
 
     private void redrawAll() {
@@ -464,6 +639,48 @@ public class GameView extends ScreenBase {
         if (idx >= seq.size()) return null;
         return seq.get(idx);
     }
+
+    private String snapshotJson(PState p) {
+        // Compose a working grid with current piece overlaid
+        int[][] grid = new int[ROWS][COLS];
+        for (int r = 0; r < ROWS; r++) {
+            System.arraycopy(p.board[r], 0, grid[r], 0, COLS);
+        }
+        if (!p.clearing && !p.dead && p.piece != null) {
+            int[][] s = p.piece.shape(p.rot);
+            int pid = p.piece.id();
+            for (int r = 0; r < 4; r++) for (int c = 0; c < 4; c++) {
+                if (s[r][c] == 0) continue;
+                int rr = p.row + r, cc = p.col + c;
+                if (rr >= 0 && rr < ROWS && cc >= 0 && cc < COLS) grid[rr][cc] = pid;
+            }
+        }
+
+        int total = ROWS * COLS;
+        int[] flat = new int[total];
+        int i = 0;
+        for (int r = 0; r < ROWS; r++) for (int c = 0; c < COLS; c++) flat[i++] = grid[r][c];
+
+        StringBuilder sb = new StringBuilder(64 + total * 3);
+        sb.append('{')
+                .append("\"type\":\"state\",")
+                .append("\"player\":").append(p.id).append(',')
+                .append("\"cols\":").append(COLS).append(',')
+                .append("\"rows\":").append(ROWS).append(',')
+                .append("\"boxes\":[");
+        for (int k = 0; k < flat.length; k++) {
+            if (k > 0) sb.append(',');
+            sb.append(flat[k]);
+        }
+        sb.append("]}");
+        String json = sb.toString();
+
+        System.out.println("[SNAP] P" + p.id + " rows=" + ROWS + " cols=" + COLS +
+                " flatLen=" + flat.length + " jsonLen=" + json.length());
+
+        return json;
+    }
+
 
     private void updateAllLabels() {
         topScoreLbl.setText(
@@ -540,10 +757,12 @@ public class GameView extends ScreenBase {
         for (int r = write; r >= 0; r--) Arrays.fill(board[r], 0);
     }
 
+    // ====== Player State (implements the AI-facing Player interface) ======
     private final class PState implements Player {
         final int id; // 1 or 2
         final ConfigService.PlayerType type;
         final int[][] board;
+
         Tetromino piece;
         int row, col, rot;
 
@@ -551,26 +770,33 @@ public class GameView extends ScreenBase {
         boolean clearing = false, dead = false;
         int[] clearingRows = new int[0];
 
-        int seqIdx = 0;
+        int seqIdx = 0;                 // personal read index into shared sequence
         PauseTransition lockTimer;
 
-        // sidebar labels
-        Label uiType, uiInit, uiLevel, uiLines, uiScore, uiHigh;
+        // Sidebar UI labels (wired by buildSidebar)
+        Label uiType, uiInit, uiLevel, uiLines, uiScore, uiHigh, uiConn;
+
+        // External control (only used when type == EXTERNAL)
+        java.util.concurrent.ConcurrentLinkedQueue<String> extQueue = new java.util.concurrent.ConcurrentLinkedQueue<>();
+        ExternalClient client;          // background network client
+        Thread clientThread;
 
         PState(int id, ConfigService.PlayerType type, int cols, int rows) {
-            this.id = id; this.type = type;
+            this.id = id;
+            this.type = type;
             this.board = new int[rows][cols];
             this.initLevel = ConfigService.getInstance().getStartLevel();
             this.level = this.initLevel;
         }
 
-        public int cols() { return COLS; }
-        public int col() { return col; }
-        public void moveLeft() { tryMove(this, 0, -1); }
-        public void moveRight() { tryMove(this, 0, 1); }
-        public void softDrop() { softDropOne(this); }
-        public void hardDrop() { hardDropNow(this); }
-        public void rotate() { tryRotate(this); }
+        // === Player interface for AI/drivers ===
+        @Override public int cols() { return COLS; }
+        @Override public int col()  { return col; }
+        @Override public void moveLeft()  { tryMove(this, 0, -1); }
+        @Override public void moveRight() { tryMove(this, 0,  1); }
+        @Override public void softDrop()  { softDropOne(this); }
+        @Override public void hardDrop()  { hardDropNow(this); }
+        @Override public void rotate()    { tryRotate(this); }
     }
 
     // movement helpers

@@ -33,6 +33,9 @@ public class Main extends Application {
         Button play = new Button("Play");
         Button config = new Button("Configuration");
         Button scores = new Button("High Scores");
+        Button controller = new Button("External Controller");
+        controller.setMaxWidth(Double.MAX_VALUE);
+        controller.setOnAction(e -> ExternalControllerWindow.show());
         Button exit = new Button("Exit");
 
         play.setMaxWidth(Double.MAX_VALUE);
@@ -54,7 +57,7 @@ public class Main extends Application {
             alert.showAndWait().ifPresent(bt -> { if (bt == ButtonType.YES) stage.close(); });
         });
 
-        VBox buttons = new VBox(12, play, config, scores, exit);
+        VBox buttons = new VBox(12, play, config, scores, controller, exit);
         buttons.setAlignment(Pos.CENTER);
         buttons.setPadding(new Insets(20));
         buttons.setPrefWidth(360);
