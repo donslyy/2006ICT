@@ -24,10 +24,18 @@ public final class ConfigService {
     private void fire(){ for (var l : List.copyOf(listeners)) l.accept(this); }
 
     public void applyDefaults() {
-        fieldWidth=15; fieldHeight=20; blockSize=24; startLevel=1;
-        musicEnabled=false; sfxEnabled=false; aiPlay=false; extendedMode=false;
-        mode = Mode.ONE_PLAYER; player1Type = PlayerType.HUMAN; player2Type = PlayerType.AI;
-        serverHost="localhost"; serverPort=3000;
+        fieldWidth  = 10;   // was 15
+        fieldHeight = 20;   // stays 20
+        startLevel  = 1;
+        musicEnabled = false;
+        sfxEnabled   = false;
+        aiPlay       = false;
+        extendedMode = false;
+        blockSize    = 24;
+        serverHost   = "localhost";
+        serverPort   = 3000;
+        player1Type  = PlayerType.HUMAN;
+        player2Type  = PlayerType.AI;
         fire();
     }
 
