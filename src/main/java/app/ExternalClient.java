@@ -34,7 +34,6 @@ final class ExternalClient implements Runnable {
 
     public void stop() { running = false; }
 
-    // Thread-safe: called from GameView to push snapshots after connect
     public void sendJson(String jsonLine) {
         try {
             PrintWriter w = this.out;
@@ -65,7 +64,6 @@ final class ExternalClient implements Runnable {
                 Platform.runLater(() -> onConnectionChange.accept(true));
                 System.out.println("[ExternalClient] Connected to " + host + ":" + port);
 
-                // >>> VERY IMPORTANT: Send the initial state snapshot as the FIRST line <<<
                 if (initialStateSupplier != null) {
                     String init = initialStateSupplier.get();
                     if (init != null && !init.isBlank()) {
@@ -78,12 +76,9 @@ final class ExternalClient implements Runnable {
                     }
                 }
 
-                // Now just read controller commands from the server
                 String line;
                 while (running && (line = in.readLine()) != null) {
                     String cmd = line.trim().toUpperCase();
-                    // Optional: log what we received
-                    // System.out.println("[ExternalClient] RECV: " + cmd);
                     switch (cmd) {
                         case "LEFT", "RIGHT", "DOWN", "ROTATE", "DROP", "PAUSE" -> onCommand.accept(cmd);
                         case "L" -> onCommand.accept("LEFT");

@@ -21,8 +21,6 @@ import javafx.util.Duration;
 import java.util.*;
 
 public class GameView extends ScreenBase {
-
-    // ====== Player-facing mini interface for AI ======
     interface Player {
         int cols();
         int rows();
@@ -63,21 +61,17 @@ public class GameView extends ScreenBase {
 
 
 
-    // Shared piece sequence for both players (ensures same order)
     private final List<Tetromino> seq = new ArrayList<>();
     private int seqWritePtr = 0;
 
-    // Two player states
     private PState p1, p2;
 
-    // UI
     private Canvas playCanvas1, playCanvas2, preview1, preview2;
     private Label topScoreLbl;
 
     private Timeline gravityTick;
     private final SimpleAI ai = new SimpleAI();
 
-    // Helper: only allow 2P when Extended Mode is ON and Mode == TWO_PLAYER
     private boolean isExtendTwoPlayer() {
         var cfg = ConfigService.getInstance();
         return cfg.isExtendedMode() && cfg.getMode() == ConfigService.Mode.TWO_PLAYER;
@@ -177,7 +171,6 @@ public class GameView extends ScreenBase {
             }
             if (paused) return;
 
-            // 2P is only active with Extended Mode + TWO_PLAYER
             if (isExtendTwoPlayer()) {
                 handleP1_Controls_Extend(e.getCode());
                 if (p2 != null) handleP2_Controls_Extend(e.getCode());
@@ -265,31 +258,28 @@ public class GameView extends ScreenBase {
         ROWS = cfg.getFieldHeight();
     }
 
-    // Single-player (not extend): P1 accepts both punctuation and arrows; Space = soft drop
     private void handleP1_Controls_Single(KeyCode code) {
         if (p1.type != ConfigService.PlayerType.HUMAN) return;
         switch (code) {
             case COMMA, LEFT -> p1.moveLeft();
             case PERIOD, RIGHT -> p1.moveRight();
-            case SPACE, DOWN -> p1.softDrop();   // Space = move down
+            case SPACE, DOWN -> p1.softDrop();
             case L, UP -> p1.rotate();
             default -> {}
         }
     }
 
-    // Extend mode: P1 punctuation + Space + L; Space = soft drop
     private void handleP1_Controls_Extend(KeyCode code) {
         if (p1.type != ConfigService.PlayerType.HUMAN) return;
         switch (code) {
             case COMMA -> p1.moveLeft();
             case PERIOD -> p1.moveRight();
-            case SPACE -> p1.softDrop();         // Space = move down
+            case SPACE -> p1.softDrop();
             case L -> p1.rotate();
             default -> {}
         }
     }
 
-    // Extend mode: P2 arrows only
     private void handleP2_Controls_Extend(KeyCode code) {
         if (p2 == null || p2.type != ConfigService.PlayerType.HUMAN) return;
         switch (code) {
@@ -358,7 +348,6 @@ public class GameView extends ScreenBase {
         p.client = new ExternalClient(
                 "localhost",
                 3000,
-                // onCommand
                 cmd -> Platform.runLater(() -> {
                     if (p.dead || p.clearing) return;
                     switch (cmd) {
@@ -371,17 +360,14 @@ public class GameView extends ScreenBase {
                         default -> {}
                     }
                     redrawAll();
-                    // push a fresh snapshot after each command so the server always has state
                     if (p.client != null) p.client.sendJson(snapshotJson(p));
                 }),
-                // onConnectionChange
                 connected -> Platform.runLater(() -> {
                     if (p.uiConn != null) {
                         p.uiConn.setText(connected ? "External: connected" : "External: disconnected");
                     }
                     System.out.println("[EXT] P" + p.id + " connected=" + connected);
                 }),
-                // initialStateSupplier (sent by ExternalClient on connect)
                 () -> snapshotJson(p)
         );
 
@@ -421,7 +407,6 @@ public class GameView extends ScreenBase {
         redrawAll();
     }
 
-    // ====== Core per-player logic ======
     private void spawn(PState p) {
         ensureSeq();
         if (p.seqIdx >= seq.size()) ensureSeq();
@@ -630,7 +615,6 @@ public class GameView extends ScreenBase {
     }
 
     private String snapshotJson(PState p) {
-        // Compose a working grid with current piece overlaid
         int[][] grid = new int[ROWS][COLS];
         for (int r = 0; r < ROWS; r++) {
             System.arraycopy(p.board[r], 0, grid[r], 0, COLS);
