@@ -14,7 +14,7 @@ public class ConfigView {
 
         var widthLabel  = new Label("Field Width");
         var widthValue  = new Label(Integer.toString(cfg.getFieldWidth()));
-        var widthSlider = sliderWithIntRange(15, 20, cfg.getFieldWidth(), widthValue);
+        var widthSlider = sliderWithIntRange(8, 12, cfg.getFieldWidth(), widthValue);
         widthSlider.valueProperty().addListener((obs, a, b) -> { cfg.setFieldWidth(b.intValue()); JsonConfigRepository.save(cfg); });
 
         var heightLabel  = new Label("Field Height");

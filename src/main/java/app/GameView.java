@@ -21,12 +21,13 @@ import java.util.*;
 
 public class GameView extends ScreenBase {
 
-    private static final int COLS = 10, ROWS = 20, CELL = 24;
+    private int COLS, ROWS;
+    private static final int CELL = 24;
     private static final int GRAVITY_MS = 700;
     private static final int LOCK_DELAY_MS = 500;
     private static final int CLEAR_FLASH_MS = 350;
 
-    private final int[][] board = new int[ROWS][COLS];
+    private int[][] board;
     private final Color[] colors = {
             Color.TRANSPARENT,
             Color.CYAN, Color.YELLOW, Color.PURPLE, Color.LIMEGREEN,
@@ -54,13 +55,13 @@ public class GameView extends ScreenBase {
     public Scene create(Stage stage) {
         this.stage = stage;
 
-        canvas = new Canvas(COLS * CELL, ROWS * CELL);
-        canvas.setFocusTraversable(true);        // keys go to canvas/scene
+        applyConfigAndResize(); // init COLS/ROWS/board/canvas
+
         scoreLbl = new Label("Score: 0");
         scoreLbl.setStyle("-fx-font-size: 14px; -fx-font-weight: bold;");
 
         Button back = new Button("Back");
-        back.setFocusTraversable(false);         // SPACE won’t trigger Back
+        back.setFocusTraversable(false);
         back.setOnAction(e -> stage.setScene(Main.buildMenuScene(stage)));
 
         VBox content = new VBox(12, scoreLbl, canvas, back);
@@ -81,7 +82,7 @@ public class GameView extends ScreenBase {
                 case RIGHT, D -> moved(tryMove(0,  1));
                 case DOWN, S  -> softDropOne();
                 case UP, W    -> moved(tryRotate());
-                case SPACE    -> hardDrop();                // always hard drop
+                case SPACE    -> hardDrop();
                 case P        -> togglePause();
                 default -> {}
             }
@@ -89,10 +90,32 @@ public class GameView extends ScreenBase {
         });
         scene.setOnMouseClicked(ev -> canvas.requestFocus());
 
+        // react to config changes (width/height) by restarting with new size
+        ConfigService.getInstance().addListener(c -> {
+            int w = c.getFieldWidth(), h = c.getFieldHeight();
+            if (w != COLS || h != ROWS) {
+                COLS = w; ROWS = h;
+                applyConfigAndResize();
+                newGame();
+                draw();
+            }
+        });
+
         newGame();
         draw();
-        canvas.requestFocus();                 // ensure SPACE/keys work immediately
+        canvas.requestFocus();
         return scene;
+    }
+
+    private void applyConfigAndResize() {
+        var cfg = ConfigService.getInstance();
+        COLS = cfg.getFieldWidth();
+        ROWS = cfg.getFieldHeight();
+        board = new int[ROWS][COLS];
+        if (canvas == null) canvas = new Canvas();
+        canvas.setWidth(COLS * CELL);
+        canvas.setHeight(ROWS * CELL);
+        canvas.setFocusTraversable(true);
     }
 
     private void newGame() {
@@ -100,6 +123,7 @@ public class GameView extends ScreenBase {
         score = 0; updateScore();
         isClearing = false;
         cancelLockTimer();
+        bag.clear();
         refillBagIfNeeded();
         spawnFromBag();
         if (gravity != null) gravity.stop();
@@ -120,7 +144,7 @@ public class GameView extends ScreenBase {
         if (paused || isClearing) return;
         if (canPlace(pr + 1, pc, rotation)) {
             pr++;
-            addScore(1);                         // only when it actually moves
+            addScore(1);
         } else {
             startLockDelay();
         }
@@ -131,7 +155,7 @@ public class GameView extends ScreenBase {
         int dist = 0;
         while (canPlace(pr + 1, pc, rotation)) { pr++; dist++; }
         if (dist > 0) addScore(dist * 2);
-        lockNowOrClear();                        // instant place at bottom
+        lockNowOrClear();
     }
 
     private void tick() {
@@ -154,7 +178,7 @@ public class GameView extends ScreenBase {
     }
 
     private void lockNowOrClear() {
-        boolean aboveTop = lockPieceAndCheckAboveTop();   // ← immediate game over if true
+        boolean aboveTop = lockPieceAndCheckAboveTop();
         if (aboveTop) { gameOver(); return; }
 
         int[] full = scanFullRows();
@@ -168,7 +192,7 @@ public class GameView extends ScreenBase {
     private boolean spawnFromBag() {
         refillBagIfNeeded();
         piece = bag.removeFirst();
-        rotation = 0; pr = 0; pc = 3;
+        rotation = 0; pr = 0; pc = Math.max(0, (COLS / 2) - 2);
         return canPlace(pr, pc, rotation);
     }
 
@@ -203,7 +227,6 @@ public class GameView extends ScreenBase {
         return true;
     }
 
-    /** Lock and return true if any block would be above the top (rr < 0). */
     private boolean lockPieceAndCheckAboveTop() {
         boolean aboveTop = false;
         int id = piece.id();
