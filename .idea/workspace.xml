@@ -5,16 +5,21 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e76d4d07-7359-43ea-a4b8-b0e84cc53922" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/app/SimpleAi.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/app/ExternalClient.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/app/ExternalControllerTool.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/app/ExternalControllerWindow.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/app/ConfigView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/ConfigView.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/app/GameView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/GameView.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/app/SplashView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/SplashView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/app/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/Main.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/app/ConfigView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/ConfigView.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$PState.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$PState.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$Tetromino.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$Tetromino.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/target/classes/app/GameView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/Main.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/Main.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,15 +50,16 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "Application.MainFX.executor": "Run",
+    "JAR Application.TetrisServer.jar.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "feat/gameview-sidebar-leveling",
+    "git-widget-placeholder": "feat/two-player",
     "kotlin-language-version-configured": "true",
     "onboarding.tips.debug.path": "C:/Users/User/IdeaProjects/2006ICT/src/Main.java",
-    "project.structure.last.edited": "Modules",
+    "project.structure.last.edited": "Project",
     "project.structure.proportion": "0.15",
     "project.structure.side.proportion": "0.2",
     "settings.editor.selected.configurable": "vcs.Git"
@@ -65,7 +71,7 @@
       <recent name="java" />
     </key>
   </component>
-  <component name="RunManager">
+  <component name="RunManager" selected="Application.MainFX">
     <configuration name="MainFX" type="Application" factoryName="Application">
       <option name="MAIN_CLASS_NAME" value="app.Main" />
       <module name="tetris" />
@@ -74,6 +80,15 @@
         <option name="Make" enabled="true" />
       </method>
     </configuration>
+    <configuration name="TetrisServer.jar" type="JarApplication" temporary="true">
+      <option name="JAR_PATH" value="$PROJECT_DIR$/src/main/java/app/TetrisServer.jar" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="JAR Application.TetrisServer.jar" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
