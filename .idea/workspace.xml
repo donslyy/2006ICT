@@ -5,20 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="e76d4d07-7359-43ea-a4b8-b0e84cc53922" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/target/classes/app/SimpleAI$EvalResult.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/target/classes/app/SimpleAI$Plan.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/scores.csv" beforeDir="false" afterPath="$PROJECT_DIR$/scores.csv" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/app/ConfigView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/ConfigView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/app/ExternalClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/ExternalClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/app/GameView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/GameView.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/app/SimpleAi.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/SimpleAi.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$1.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$PState.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$PState.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$Player.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$Player.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$Tetromino.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$Tetromino.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/app/SimpleAI.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/SimpleAI.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

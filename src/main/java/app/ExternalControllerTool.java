@@ -47,8 +47,6 @@ public class ExternalControllerTool extends Application {
         connectBtn.setOnAction(e -> connect());
         closeBtn.setOnAction(e -> disconnect());
 
-        // Keyboard shortcuts
-        // Arrows/Space/P map to server commands (Esc disconnects)
         var root = new VBox(
                 10,
                 centered(new Label("External Controller (localhost:3000)")),
