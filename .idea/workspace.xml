@@ -6,9 +6,16 @@
   <component name="ChangeListManager">
     <list default="true" id="e76d4d07-7359-43ea-a4b8-b0e84cc53922" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.json" beforeDir="false" afterPath="$PROJECT_DIR$/config.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/app/ConfigService.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/ConfigService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/app/ExternalClient.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/ExternalClient.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/app/GameView.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/app/GameView.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/ConfigService$Mode.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/ConfigService$Mode.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/ConfigService$PlayerType.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/ConfigService$PlayerType.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/ConfigService.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/ConfigService.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$1.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$1.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$PState.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$PState.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView$Tetromino.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView$Tetromino.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/target/classes/app/GameView.class" beforeDir="false" afterPath="$PROJECT_DIR$/target/classes/app/GameView.class" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -36,24 +43,24 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "Application.MainFX.executor": "Run",
-    "JAR Application.TetrisServer.jar.executor": "Run",
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
-    "git-widget-placeholder": "feat/ai-overhaul",
-    "kotlin-language-version-configured": "true",
-    "onboarding.tips.debug.path": "C:/Users/User/IdeaProjects/2006ICT/src/Main.java",
-    "project.structure.last.edited": "Project",
-    "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2",
-    "settings.editor.selected.configurable": "vcs.Git"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.MainFX.executor&quot;: &quot;Run&quot;,
+    &quot;JAR Application.TetrisServer.jar.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feat/vid-prepare&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;onboarding.tips.debug.path&quot;: &quot;C:/Users/User/IdeaProjects/2006ICT/src/Main.java&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;vcs.Git&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveClassesOrPackagesDialog.RECENTS_KEY">
       <recent name="" />

@@ -162,7 +162,6 @@ public class GameView extends ScreenBase {
         // input mapping
         scene.setOnKeyPressed(e -> {
             var cfgNow = ConfigService.getInstance();
-            // global toggles
             switch (e.getCode()) {
                 case P -> { togglePause(); return; }
                 case S -> { cfgNow.setSfxEnabled(!cfgNow.isSfxEnabled()); JsonConfigRepository.save(cfgNow); return; }
@@ -446,7 +445,10 @@ public class GameView extends ScreenBase {
 
     private void lockNowOrClear(PState p) {
         boolean aboveTop = lockAndCheckAboveTop(p);
-        if (aboveTop) { onGameOver(p); return; }
+        if (aboveTop) {
+            onGameOver(p);
+            return;
+        }
 
         int[] full = scanFullRows(p.board);
         if (full.length > 0) {
@@ -455,6 +457,7 @@ public class GameView extends ScreenBase {
             spawn(p);
         }
     }
+
 
     private boolean lockAndCheckAboveTop(PState p) {
         boolean aboveTop = false;
