@@ -87,7 +87,7 @@ final class ExternalClient implements Runnable {
                         case "U" -> onCommand.accept("ROTATE");
                         case "SPACE", "HARD", "HARDDROP" -> onCommand.accept("DROP");
                         case "P" -> onCommand.accept("PAUSE");
-                        default -> { /* ignore unknown */ }
+                        default -> {}
                     }
                 }
                 System.out.println("[ExternalClient] Disconnected (socket closed).");

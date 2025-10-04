@@ -20,7 +20,6 @@ public final class ConfigService {
 
     private final List<Consumer<ConfigService>> listeners = new ArrayList<>();
     public void addListener(Consumer<ConfigService> l){ if(l!=null) listeners.add(l); }
-    public void removeListener(Consumer<ConfigService> l){ listeners.remove(l); }
     private void fire(){ for (var l : List.copyOf(listeners)) l.accept(this); }
 
     public void applyDefaults() {
